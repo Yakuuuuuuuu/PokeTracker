@@ -1,0 +1,868 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+
+/* ─── FONTS + GLOBAL CSS ──────────────────────────────────────────────────── */
+const GlobalStyle = () => {
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel  = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap";
+    document.head.appendChild(link);
+    const s = document.createElement("style");
+    s.textContent = `
+      *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+      html,body{background:#07070F;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+      ::-webkit-scrollbar{width:4px;height:4px}
+      ::-webkit-scrollbar-track{background:transparent}
+      ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:99px}
+      @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+      @keyframes spin{to{transform:rotate(360deg)}}
+      @keyframes modalIn{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+      @keyframes podiumIn{from{opacity:0;transform:scaleY(0);transform-origin:bottom}to{opacity:1;transform:scaleY(1);transform-origin:bottom}}
+      @keyframes slideUp{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:translateY(0)}}
+      .fade{animation:fadeUp .38s cubic-bezier(.22,.68,0,1.2) both}
+      .card{background:rgba(255,255,255,.033);border:1px solid rgba(255,255,255,.07);border-radius:16px;transition:border .2s,box-shadow .2s}
+      input,select,textarea{
+        font-family:'DM Sans',sans-serif;outline:none;
+        background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.09);
+        color:#FAFAFA;border-radius:11px;padding:12px 14px;font-size:15px;
+        transition:border .2s,background .2s,box-shadow .2s;width:100%;
+        -webkit-appearance:none;appearance:none;
+      }
+      input:focus,select:focus{border-color:rgba(255,45,85,.55);background:rgba(255,45,85,.05);box-shadow:0 0 0 3px rgba(255,45,85,.1)}
+      input::placeholder{color:rgba(255,255,255,.22)}
+      select option{background:#12121E;color:#FAFAFA}
+      table{border-collapse:collapse;width:100%}
+      .rh:hover{background:rgba(255,255,255,.025)!important}
+      .btn{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border:none;border-radius:11px;cursor:pointer;
+        padding:12px 22px;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+        -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+      .btn-p{background:linear-gradient(135deg,#FF2D55,#FF5E3A);color:#fff;box-shadow:0 4px 20px rgba(255,45,85,.3)}
+      .btn-p:hover{opacity:.88;box-shadow:0 8px 28px rgba(255,45,85,.4)}
+      .btn-p:active{opacity:.75;transform:scale(.98)}
+      .btn-g{background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.1)}
+      .btn-g:hover{background:rgba(255,255,255,.1);color:#fff}
+      .btn-g:active{opacity:.75}
+      .btn-icon{background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+        border-radius:8px;padding:6px;transition:all .15s;-webkit-tap-highlight-color:transparent}
+      .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;
+        font-size:11.5px;font-weight:500;font-family:'DM Sans',sans-serif;white-space:nowrap}
+      .nav-tab{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;background:none;
+        border:1px solid transparent;border-radius:9px;cursor:pointer;padding:7px 13px;
+        transition:all .2s;display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.4);
+        white-space:nowrap;-webkit-tap-highlight-color:transparent}
+      .nav-tab:hover{color:#fff;background:rgba(255,255,255,.05)}
+      .nav-tab.active{color:#FF2D55;background:rgba(255,45,85,.1);border-color:rgba(255,45,85,.22)}
+      .bot-tab{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;
+        background:none;border:none;cursor:pointer;padding:8px 4px 6px;
+        font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;
+        color:rgba(255,255,255,.35);transition:color .2s;-webkit-tap-highlight-color:transparent;
+        touch-action:manipulation}
+      .bot-tab.active{color:#FF2D55}
+      .code-box{width:44px;height:54px;border-radius:12px;background:rgba(255,255,255,.05);
+        border:1.5px solid rgba(255,255,255,.1);color:#FAFAFA;font-family:'Syne',sans-serif;
+        font-size:22px;font-weight:700;text-align:center;transition:all .2s;
+        -webkit-appearance:none;appearance:none}
+      .code-box:focus{border-color:rgba(255,45,85,.6);background:rgba(255,45,85,.06);
+        box-shadow:0 0 0 3px rgba(255,45,85,.1)}
+      @media(max-width:640px){
+        .hide-mobile{display:none!important}
+        .show-mobile{display:flex!important}
+        .grid-kpi{grid-template-columns:1fr 1fr!important}
+        .grid-dash{grid-template-columns:1fr!important}
+        .grid-form{grid-template-columns:1fr!important}
+        .grid-form .full{grid-column:1!important}
+        .main-pad{padding:16px 14px 80px!important}
+        .page-head{flex-wrap:wrap;gap:10px}
+        .page-head h2{font-size:18px!important}
+        .inv-grid{grid-template-columns:1fr!important}
+        table td,table th{padding:9px 10px!important;font-size:12px!important}
+      }
+      @media(min-width:641px){
+        .show-mobile{display:none!important}
+        .bot-nav{display:none!important}
+      }
+    `;
+    document.head.appendChild(s);
+    return () => { document.head.removeChild(link); document.head.removeChild(s); };
+  }, []);
+  return null;
+};
+
+/* ─── DESIGN TOKENS ───────────────────────────────────────────────────────── */
+const T = {
+  bg:"#07070F", sur:"#0C0C1A",
+  b:"rgba(255,255,255,.07)", bB:"rgba(255,255,255,.14)",
+  red:"#FF2D55", yel:"#FFD60A", cy:"#00D9FF", gr:"#00F5A0",
+  pu:"#BF5AF2", or:"#FF9500",
+  t1:"#FAFAFA", t2:"rgba(255,255,255,.55)", t3:"rgba(255,255,255,.28)",
+};
+const fmtCAD = n => new Intl.NumberFormat("fr-CA",{style:"currency",currency:"CAD",minimumFractionDigits:2}).format(n||0);
+const fmtPct = n => `${((n||0)*100).toFixed(1)}%`;
+
+/* ─── ICONS ───────────────────────────────────────────────────────────────── */
+const Ic = ({d,size=16,color="currentColor",sw=1.6}) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+    {(Array.isArray(d)?d:[d]).map((p,i)=><path key={i} d={p}/>)}
+  </svg>
+);
+const IC = {
+  logo:    ["M12 2a10 10 0 100 20A10 10 0 0012 2z","M2 12h20","M12 9a3 3 0 100 6 3 3 0 000-6z"],
+  dash:    ["M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z","M9 22V12h6v10"],
+  buy:     ["M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z","M3 6h18","M16 10a4 4 0 01-8 0"],
+  sell:    "M12 2v20 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+  inv:     ["M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z","M3.27 6.96L12 12.01l8.73-5.05","M12 22.08V12"],
+  trophy:  ["M6 9H3l3 10h12l3-10h-3","M6 9V5a6 6 0 0012 0v4","M12 14v4","M9 18h6"],
+  add:     "M12 5v14 M5 12h14",
+  trash:   ["M3 6h18","M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"],
+  close:   "M18 6L6 18 M6 6l12 12",
+  eye:     ["M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z","M12 9a3 3 0 100 6 3 3 0 000-6z"],
+  eyeoff:  ["M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94","M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19","M1 1l22 22","M14.12 14.12a3 3 0 01-4.24-4.24"],
+  user:    ["M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2","M12 3a4 4 0 100 8 4 4 0 000-8z"],
+  mail:    ["M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z","M22 6l-10 7L2 6"],
+  lock:    ["M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z","M7 11V7a5 5 0 0110 0v4"],
+  logout:  ["M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4","M16 17l5-5-5-5","M21 12H9"],
+  refresh: ["M23 4v6h-6","M1 20v-6h6","M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"],
+  menu:    "M3 12h18 M3 6h18 M3 18h18",
+  check:   "M20 6L9 17l-5-5",
+};
+
+/* ─── STORAGE ─────────────────────────────────────────────────────────────── */
+const hashPw  = pw => btoa(encodeURIComponent(pw + "_pt26salt"));
+const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
+const DB = {
+  async getSession()     { try{ const r=await window.storage.get("pt2:sess");    return r?JSON.parse(r.value):null; }catch{return null;} },
+  async setSession(u)    { try{ await window.storage.set("pt2:sess",JSON.stringify(u)); }catch{} },
+  async clearSession()   { try{ await window.storage.delete("pt2:sess"); }catch{} },
+  async getAccounts()    { try{ const r=await window.storage.get("pt2:accs",true); return r?JSON.parse(r.value):[]; }catch{return[];} },
+  async saveAccounts(a)  { try{ await window.storage.set("pt2:accs",JSON.stringify(a),true); }catch{} },
+  async load(uid)        { try{ const r=await window.storage.get("pt2u_"+uid,true); return r?JSON.parse(r.value):{achats:[],ventes:[],inventaire:[]}; }catch{return{achats:[],ventes:[],inventaire:[]};} },
+  async save(uid,data)   { try{ await window.storage.set("pt2u_"+uid,JSON.stringify(data),true); }catch{} },
+};
+
+/* ─── MICRO COMPONENTS ────────────────────────────────────────────────────── */
+const Spinner = ({size=22,color=T.red}) => (
+  <div style={{width:size,height:size,borderRadius:"50%",border:"2px solid rgba(255,255,255,.1)",
+    borderTopColor:color,animation:"spin .7s linear infinite",flexShrink:0}}/>
+);
+
+const CAT_MAP = {
+  "Booster Box":      {bg:"rgba(0,217,255,.11)",  c:T.cy},
+  "Elite Trainer Box":{bg:"rgba(191,90,242,.11)", c:T.pu},
+  "Carte Single":     {bg:"rgba(255,45,85,.11)",  c:T.red},
+  "Bundle":           {bg:"rgba(255,149,0,.11)",  c:T.or},
+  "Deck":             {bg:"rgba(0,245,160,.11)",  c:T.gr},
+  "Tin":              {bg:"rgba(255,214,10,.11)", c:T.yel},
+  "Coffret":          {bg:"rgba(191,90,242,.11)", c:T.pu},
+  "Autre":            {bg:"rgba(255,255,255,.07)",c:T.t2},
+};
+const Badge  = ({label})  => { const s=CAT_MAP[label]||CAT_MAP["Autre"]; return <span className="badge" style={{background:s.bg,color:s.c}}><span style={{width:5,height:5,borderRadius:"50%",background:s.c,flexShrink:0}}/>{label}</span>; };
+const PBadge = ({val})    => { const pos=val>=0; return <span className="badge" style={{background:pos?"rgba(0,245,160,.11)":"rgba(255,45,85,.11)",color:pos?T.gr:T.red}}>{pos?"▲":"▼"} {fmtCAD(Math.abs(val))}</span>; };
+
+const Field = ({label,error,children}) => (
+  <div style={{marginBottom:14}}>
+    <label style={{display:"block",fontFamily:"'DM Sans',sans-serif",fontSize:11.5,color:T.t3,marginBottom:6,letterSpacing:".5px",textTransform:"uppercase"}}>{label}</label>
+    {children}
+    {error && <p style={{color:T.red,fontSize:11.5,marginTop:5,fontFamily:"'DM Sans',sans-serif"}}>{error}</p>}
+  </div>
+);
+
+/* Modal — full-screen on mobile, centered on desktop */
+const Modal = ({open,title,onClose,children}) => {
+  if(!open) return null;
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.78)",backdropFilter:"blur(14px)",
+      zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center",padding:"0"}}
+      onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={{background:"#0D0D1D",border:`1px solid ${T.bB}`,
+        borderRadius:"20px 20px 0 0",padding:"24px 20px 32px",
+        width:"100%",maxWidth:560,maxHeight:"95vh",overflowY:"auto",
+        animation:"slideUp .28s cubic-bezier(.22,.68,0,1.2) both",
+        boxShadow:"0 -20px 60px rgba(0,0,0,.6)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:22}}>
+          <h3 style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:700,color:T.t1}}>{title}</h3>
+          <button className="btn-icon" onClick={onClose} style={{color:T.t3}}><Ic d={IC.close} size={18}/></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+const Empty = ({icon,text}) => (
+  <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,padding:"52px 20px",color:T.t3}}>
+    <div style={{width:48,height:48,borderRadius:14,background:"rgba(255,255,255,.03)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <Ic d={IC[icon]||IC.dash} size={22} color={T.t3}/>
+    </div>
+    <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13.5}}>{text}</p>
+  </div>
+);
+
+const ErrBox = ({msg}) => msg ? (
+  <div style={{background:"rgba(255,45,85,.1)",border:"1px solid rgba(255,45,85,.22)",borderRadius:10,
+    padding:"10px 14px",marginBottom:14,fontFamily:"'DM Sans',sans-serif",fontSize:13.5,color:T.red}}>
+    {msg}
+  </div>
+) : null;
+
+/* ─── KPI CARD ────────────────────────────────────────────────────────────── */
+const KpiCard = ({label,value,accent,icon,delay=0}) => {
+  const [anim,setAnim] = useState(0);
+  const num = typeof value === "number" ? value : 0;
+  useEffect(()=>{
+    let start=null; const dur=900;
+    const tick=ts=>{ if(!start)start=ts; const p=Math.min((ts-start)/dur,1); const e=1-Math.pow(1-p,3); setAnim(num*e); if(p<1)requestAnimationFrame(tick); };
+    const t=setTimeout(()=>requestAnimationFrame(tick),delay);
+    return()=>clearTimeout(t);
+  },[num,delay]);
+  const isStr = typeof value==="string";
+  const isPct = isStr && value.includes("%");
+  const disp  = isStr ? value : fmtCAD(anim);
+  return (
+    <div className="card fade" style={{animationDelay:`${delay}ms`,padding:"20px 18px",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:-36,right:-36,width:100,height:100,borderRadius:"50%",background:accent,opacity:.07,filter:"blur(24px)",pointerEvents:"none"}}/>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:12}}>
+        <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:T.t3,letterSpacing:".6px",textTransform:"uppercase",lineHeight:1.3}}>{label}</span>
+        <div style={{width:30,height:30,borderRadius:8,background:`${accent}1A`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <Ic d={IC[icon]||IC.dash} size={13} color={accent}/>
+        </div>
+      </div>
+      <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:700,color:T.t1,letterSpacing:"-.3px",lineHeight:1.1}}>{disp}</div>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${accent},transparent)`,opacity:.4}}/>
+    </div>
+  );
+};
+
+/* ─── CHART TOOLTIP ───────────────────────────────────────────────────────── */
+const CTip = ({active,payload,label}) => {
+  if(!active||!payload?.length) return null;
+  return (
+    <div style={{background:"rgba(10,10,22,.96)",border:`1px solid ${T.b}`,borderRadius:11,padding:"10px 14px",backdropFilter:"blur(20px)"}}>
+      <p style={{fontFamily:"'Syne',sans-serif",fontSize:12,color:T.t1,marginBottom:6,fontWeight:600}}>{label}</p>
+      {payload.map((p,i)=><p key={i} style={{fontFamily:"'DM Sans',sans-serif",fontSize:11.5,color:p.color,marginBottom:2}}>{p.name}: <strong>{fmtCAD(p.value)}</strong></p>)}
+    </div>
+  );
+};
+
+/* ─── TABLE PRIMITIVES ────────────────────────────────────────────────────── */
+const TH = ({ch,right}) => <th style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:T.t3,fontWeight:500,letterSpacing:".5px",textTransform:"uppercase",padding:"10px 14px",textAlign:right?"right":"left",borderBottom:`1px solid ${T.b}`,whiteSpace:"nowrap"}}>{ch}</th>;
+const TD = ({ch,right,bold,color}) => <td style={{padding:"12px 14px",fontFamily:"'DM Sans',sans-serif",fontSize:13.5,color:color||(bold?T.t1:T.t2),fontWeight:bold?500:400,textAlign:right?"right":"left",borderBottom:"1px solid rgba(255,255,255,.025)"}}>{ch}</td>;
+const DelBtn = ({onDel}) => (
+  <button className="btn-icon" onClick={onDel} style={{color:T.t3}}
+    onMouseEnter={e=>e.currentTarget.style.color=T.red}
+    onMouseLeave={e=>e.currentTarget.style.color=T.t3}>
+    <Ic d={IC.trash} size={14}/>
+  </button>
+);
+
+const CATS  = ["Booster Box","Elite Trainer Box","Carte Single","Bundle","Deck","Tin","Coffret","Autre"];
+const PLATS = ["eBay","TCGPlayer","CardMarket","Facebook Marketplace","Kijiji","Local","Autre"];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUTH
+═══════════════════════════════════════════════════════════════════════════ */
+const AuthWrap = ({children}) => (
+  <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",
+    background:T.bg,padding:16,position:"relative",overflow:"hidden"}}>
+    <div style={{position:"absolute",top:"-25%",left:"50%",transform:"translateX(-50%)",width:500,height:360,borderRadius:"50%",background:"radial-gradient(circle,rgba(255,45,85,.13),transparent 70%)",pointerEvents:"none"}}/>
+    <div style={{position:"absolute",bottom:"-15%",right:"-5%",width:320,height:320,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,217,255,.07),transparent 70%)",pointerEvents:"none"}}/>
+    <div className="fade" style={{maxWidth:420,width:"100%",background:"rgba(11,11,25,.92)",
+      border:`1px solid ${T.bB}`,borderRadius:22,padding:"32px 28px",
+      boxShadow:"0 40px 80px rgba(0,0,0,.5)",backdropFilter:"blur(24px)"}}>
+      <div style={{textAlign:"center",marginBottom:28}}>
+        <div style={{width:52,height:52,borderRadius:14,background:"linear-gradient(135deg,#FF2D55,#FF6B35)",
+          display:"inline-flex",alignItems:"center",justifyContent:"center",
+          boxShadow:"0 6px 24px rgba(255,45,85,.42)",marginBottom:14}}>
+          <Ic d={IC.logo} size={26} color="#fff" sw={1.8}/>
+        </div>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:21,fontWeight:800,color:T.t1,letterSpacing:"-.3px"}}>PokeTracker</div>
+        <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:T.t3,letterSpacing:"1.8px",textTransform:"uppercase",marginTop:2}}>Trading Card Manager</div>
+      </div>
+      {children}
+    </div>
+  </div>
+);
+
+const AuthField = ({label,type="text",value,onChange,placeholder,icon,error}) => {
+  const [show,setShow]=useState(false);
+  return (
+    <div style={{marginBottom:14}}>
+      {label&&<label style={{display:"block",fontFamily:"'DM Sans',sans-serif",fontSize:11.5,color:T.t3,marginBottom:6,letterSpacing:".4px",textTransform:"uppercase"}}>{label}</label>}
+      <div style={{position:"relative"}}>
+        {icon&&<div style={{position:"absolute",left:13,top:"50%",transform:"translateY(-50%)",color:T.t3,pointerEvents:"none",display:"flex"}}><Ic d={IC[icon]} size={15}/></div>}
+        <input type={type==="password"?(show?"text":"password"):type} value={value} onChange={onChange}
+          placeholder={placeholder} style={{paddingLeft:icon?40:14,paddingRight:type==="password"?42:14}}/>
+        {type==="password"&&(
+          <button type="button" onClick={()=>setShow(x=>!x)}
+            style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:T.t3,display:"flex",padding:4}}>
+            <Ic d={show?IC.eyeoff:IC.eye} size={15}/>
+          </button>
+        )}
+      </div>
+      {error&&<p style={{color:T.red,fontSize:12,marginTop:5,fontFamily:"'DM Sans',sans-serif"}}>{error}</p>}
+    </div>
+  );
+};
+
+function LoginScreen({onLogin,onGoSignup}) {
+  const [id,setId]=useState("");
+  const [pw,setPw]=useState("");
+  const [err,setErr]=useState("");
+  const [busy,setBusy]=useState(false);
+
+  const submit = async () => {
+    if(!id.trim()||!pw) return setErr("Remplis tous les champs");
+    setBusy(true); setErr("");
+    const accs = await DB.getAccounts();
+    const acc  = accs.find(a=>a.username===id.trim()||a.email===id.trim());
+    if(!acc)             { setErr("Identifiant ou mot de passe incorrect"); return setBusy(false); }
+    if(!acc.verified)    { setErr("Compte non vérifié — vérifie ton email"); return setBusy(false); }
+    if(acc.pw!==hashPw(pw)) { setErr("Identifiant ou mot de passe incorrect"); return setBusy(false); }
+    const user={username:acc.username,email:acc.email};
+    await DB.setSession(user);
+    onLogin(user);
+  };
+
+  return (
+    <AuthWrap>
+      <h2 style={{fontFamily:"'Syne',sans-serif",fontSize:19,fontWeight:700,color:T.t1,marginBottom:4}}>Connexion</h2>
+      <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:T.t3,marginBottom:22}}>Heureux de te revoir 👋</p>
+      <AuthField label="Identifiant ou email" value={id} onChange={e=>setId(e.target.value)} placeholder="pseudo ou email@..." icon="user"/>
+      <AuthField label="Mot de passe" type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="••••••••" icon="lock"/>
+      <ErrBox msg={err}/>
+      <button className="btn btn-p" onClick={submit} style={{width:"100%",marginTop:4}}>
+        {busy?<Spinner size={16} color="#fff"/>:"Se connecter"}
+      </button>
+      <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:T.t3,textAlign:"center",marginTop:18}}>
+        Pas de compte ?{" "}
+        <button onClick={onGoSignup} style={{background:"none",border:"none",cursor:"pointer",color:T.red,fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:500}}>Créer un compte →</button>
+      </p>
+    </AuthWrap>
+  );
+}
+
+function SignupScreen({onSignup,onGoLogin}) {
+  const [f,setF]=useState({username:"",email:"",pw:"",pw2:""});
+  const [err,setErr]=useState("");
+  const [busy,setBusy]=useState(false);
+  const upd=(k)=>(e)=>setF(x=>({...x,[k]:e.target.value}));
+
+  const submit = async () => {
+    const {username,email,pw,pw2}=f;
+    if(!username||!email||!pw||!pw2)   return setErr("Remplis tous les champs");
+    if(pw!==pw2)                        return setErr("Les mots de passe ne correspondent pas");
+    if(pw.length<6)                     return setErr("Mot de passe trop court (min. 6 caractères)");
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setErr("Email invalide");
+    if(!/^[a-zA-Z0-9_]{3,20}$/.test(username))    return setErr("Pseudo : 3-20 caractères, lettres/chiffres/_ uniquement");
+    setBusy(true); setErr("");
+    const accs=await DB.getAccounts();
+    if(accs.find(a=>a.username===username)) { setErr("Ce pseudo est déjà pris"); return setBusy(false); }
+    if(accs.find(a=>a.email===email))       { setErr("Cet email est déjà utilisé"); return setBusy(false); }
+    const code=genCode();
+    await DB.saveAccounts([...accs,{username,email,pw:hashPw(pw),code,verified:false,createdAt:new Date().toISOString()}]);
+    onSignup({username,email,code});
+  };
+
+  return (
+    <AuthWrap>
+      <h2 style={{fontFamily:"'Syne',sans-serif",fontSize:19,fontWeight:700,color:T.t1,marginBottom:4}}>Créer un compte</h2>
+      <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:T.t3,marginBottom:22}}>Rejoins PokeTracker gratuitement 🎴</p>
+      <AuthField label="Pseudo" value={f.username} onChange={upd("username")} placeholder="Mon pseudo (3-20 car.)" icon="user"/>
+      <AuthField label="Email" value={f.email} onChange={upd("email")} placeholder="email@exemple.com" icon="mail"/>
+      <AuthField label="Mot de passe" type="password" value={f.pw} onChange={upd("pw")} placeholder="Min. 6 caractères" icon="lock"/>
+      <AuthField label="Confirmer" type="password" value={f.pw2} onChange={upd("pw2")} placeholder="Répète ton mot de passe" icon="lock"/>
+      <ErrBox msg={err}/>
+      <button className="btn btn-p" onClick={submit} style={{width:"100%"}}>
+        {busy?<Spinner size={16} color="#fff"/>:"Créer mon compte"}
+      </button>
+      <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:T.t3,textAlign:"center",marginTop:18}}>
+        Déjà un compte ?{" "}
+        <button onClick={onGoLogin} style={{background:"none",border:"none",cursor:"pointer",color:T.red,fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:500}}>Se connecter →</button>
+      </p>
+    </AuthWrap>
+  );
+}
+
+function VerifyScreen({username,email,code,onVerify,onBack}) {
+  const [digits,setDigits]=useState(["","","","","",""]);
+  const [err,setErr]=useState("");
+  const refs=useRef([]);
+
+  const update=(i,val)=>{
+    if(!/^\d?$/.test(val)) return;
+    const d=[...digits]; d[i]=val; setDigits(d);
+    if(val&&i<5) refs.current[i+1]?.focus();
+  };
+  const onKey=(i,e)=>{ if(e.key==="Backspace"&&!digits[i]&&i>0) refs.current[i-1]?.focus(); };
+
+  const submit = async () => {
+    const entered=digits.join("");
+    if(entered.length!==6) return setErr("Saisis les 6 chiffres");
+    if(entered!==code)     return setErr("Code incorrect, réessaie");
+    const accs=await DB.getAccounts();
+    await DB.saveAccounts(accs.map(a=>a.username===username?{...a,verified:true}:a));
+    onVerify();
+  };
+
+  return (
+    <AuthWrap>
+      <div style={{textAlign:"center",marginBottom:22}}>
+        <div style={{width:58,height:58,borderRadius:"50%",background:"rgba(0,217,255,.1)",border:"1px solid rgba(0,217,255,.2)",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:14}}>
+          <Ic d={IC.mail} size={26} color={T.cy}/>
+        </div>
+        <h2 style={{fontFamily:"'Syne',sans-serif",fontSize:19,fontWeight:700,color:T.t1,marginBottom:8}}>Vérifie ton email</h2>
+        <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:T.t3,lineHeight:1.6}}>Code envoyé à<br/><strong style={{color:T.t1}}>{email}</strong></p>
+      </div>
+      <div style={{background:"rgba(255,214,10,.07)",border:"1px solid rgba(255,214,10,.18)",borderRadius:12,padding:"12px 14px",marginBottom:20,display:"flex",alignItems:"center",gap:12}}>
+        <Ic d={IC.check} size={16} color={T.yel}/>
+        <div>
+          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11.5,color:T.yel,fontWeight:500}}>Mode démo — ton code :</p>
+          <p style={{fontFamily:"'Syne',sans-serif",fontSize:24,fontWeight:800,color:T.yel,letterSpacing:"7px",marginTop:2}}>{code}</p>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:8,justifyContent:"center",marginBottom:18}}>
+        {digits.map((d,i)=>(
+          <input key={i} ref={el=>refs.current[i]=el} className="code-box"
+            maxLength={1} value={d} inputMode="numeric"
+            onChange={e=>update(i,e.target.value)} onKeyDown={e=>onKey(i,e)}/>
+        ))}
+      </div>
+      <ErrBox msg={err}/>
+      <button className="btn btn-p" onClick={submit} style={{width:"100%"}}>Vérifier et continuer</button>
+      <button onClick={onBack} className="btn btn-g" style={{width:"100%",marginTop:10}}>← Retour</button>
+    </AuthWrap>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIEWS
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── DASHBOARD ──────────────────────────────────────────────────────────── */
+function Dashboard({achats,ventes,inventaire,user}) {
+  const totA  = achats.reduce((s,r)=>s+(r.prixUnit*r.qty)+(r.fraisEnvoi||0), 0);
+  const totVN = ventes.reduce((s,r)=>s+(r.prixVente-(r.fraisPlat||0)-(r.fraisEnvoi||0)), 0);
+  const totB  = ventes.reduce((s,r)=>s+(r.prixVente-(r.fraisPlat||0)-(r.fraisEnvoi||0)-(r.coutAchat||0)), 0);
+  const totC  = inventaire.reduce((s,r)=>s+(r.qty*(r.coutUnit||0)), 0);
+  const totP  = inventaire.reduce((s,r)=>s+(r.qty*(r.prixCible||0)), 0);
+  const roi   = totA>0 ? totB/totA : 0;
+
+  const kpis = [
+    {label:"Coût total achats",    value:totA,        accent:T.cy,  icon:"buy",    delay:0  },
+    {label:"Revenu net ventes",    value:totVN,       accent:T.pu,  icon:"sell",   delay:60 },
+    {label:"Bénéfice net",         value:totB,        accent:totB>=0?T.gr:T.red, icon:"trophy", delay:120},
+    {label:"ROI global",           value:fmtPct(roi),accent:T.yel, icon:"dash",   delay:180},
+    {label:"Valeur stock",         value:totC,        accent:T.or,  icon:"inv",    delay:240},
+    {label:"Plus-value potentielle",value:totP-totC, accent:T.pu,  icon:"dash",   delay:300},
+  ];
+
+  const monthly={};
+  ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"].forEach((m,i)=>{
+    const mm=String(i+1).padStart(2,"0");
+    const a=achats.filter(r=>r.date?.includes(`-${mm}-`)).reduce((s,r)=>s+r.prixUnit*r.qty+(r.fraisEnvoi||0),0);
+    const v=ventes.filter(r=>r.date?.includes(`-${mm}-`)).reduce((s,r)=>s+r.prixVente,0);
+    const b=ventes.filter(r=>r.date?.includes(`-${mm}-`)).reduce((s,r)=>s+(r.prixVente-(r.fraisPlat||0)-(r.fraisEnvoi||0)-(r.coutAchat||0)),0);
+    if(a||v||b) monthly[m]={m,achat:a,vente:v,benefice:b};
+  });
+  const chart=Object.values(monthly);
+
+  return (
+    <div>
+      <div style={{marginBottom:16}}>
+        <h1 style={{fontFamily:"'Syne',sans-serif",fontSize:"clamp(18px,4vw,26px)",fontWeight:800,color:T.t1,letterSpacing:"-.4px"}}>
+          Bonjour, <span style={{background:`linear-gradient(90deg,${T.red},${T.yel})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{user.username}</span> 👋
+        </h1>
+        <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:T.t3,marginTop:4}}>
+          {achats.length} achats · {ventes.length} ventes · {inventaire.length} items en stock
+        </p>
+      </div>
+
+      <div className="grid-kpi" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:18}}>
+        {kpis.map((k,i)=><KpiCard key={i} {...k}/>)}
+      </div>
+
+      <div className="grid-dash" style={{display:"grid",gridTemplateColumns:"1.6fr 1fr",gap:12}}>
+        {/* Chart */}
+        <div className="card" style={{padding:20}}>
+          <h3 style={{fontFamily:"'Syne',sans-serif",fontSize:14,fontWeight:700,color:T.t1,marginBottom:3}}>Performance mensuelle</h3>
+          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11.5,color:T.t3,marginBottom:16}}>Achats · Ventes · Bénéfice</p>
+          {chart.length===0
+            ? <Empty icon="dash" text="Ajoute des données pour voir le graphique"/>
+            : <>
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={chart} margin={{top:4,right:4,bottom:0,left:0}}>
+                    <defs>
+                      {[[T.cy,"gA"],[T.pu,"gV"],[T.gr,"gB"]].map(([c,id])=>(
+                        <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={c} stopOpacity={.28}/><stop offset="95%" stopColor={c} stopOpacity={0}/>
+                        </linearGradient>
+                      ))}
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.04)" vertical={false}/>
+                    <XAxis dataKey="m" tick={{fill:T.t3,fontSize:10,fontFamily:"DM Sans"}} axisLine={false} tickLine={false}/>
+                    <YAxis tick={{fill:T.t3,fontSize:10,fontFamily:"DM Sans"}} axisLine={false} tickLine={false} tickFormatter={v=>`$${v}`}/>
+                    <Tooltip content={<CTip/>}/>
+                    <Area type="monotone" dataKey="achat"    name="Achats"   stroke={T.cy} strokeWidth={2} fill="url(#gA)" dot={false}/>
+                    <Area type="monotone" dataKey="vente"    name="Ventes"   stroke={T.pu} strokeWidth={2} fill="url(#gV)" dot={false}/>
+                    <Area type="monotone" dataKey="benefice" name="Bénéfice" stroke={T.gr} strokeWidth={2} fill="url(#gB)" dot={false}/>
+                  </AreaChart>
+                </ResponsiveContainer>
+                <div style={{display:"flex",gap:16,marginTop:10,justifyContent:"center"}}>
+                  {[{c:T.cy,l:"Achats"},{c:T.pu,l:"Ventes"},{c:T.gr,l:"Bénéfice"}].map(({c,l})=>(
+                    <div key={l} style={{display:"flex",alignItems:"center",gap:5}}>
+                      <div style={{width:16,height:2,background:c,borderRadius:1}}/>
+                      <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:11.5,color:T.t3}}>{l}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+          }
+        </div>
+
+        {/* Aperçu rapide (Dernières ventes) */}
+        <div className="card" style={{padding:20}}>
+          <h3 style={{fontFamily:"'Syne',sans-serif",fontSize:14,fontWeight:700,color:T.t1,marginBottom:16}}>Dernières ventes</h3>
+          {ventes.length === 0 ? (
+            <Empty icon="sell" text="Aucune vente récente"/>
+          ) : (
+            <div>
+              {ventes.slice(-5).reverse().map((v, i) => {
+                const benef = v.prixVente - (v.fraisPlat||0) - (v.fraisEnvoi||0) - (v.coutAchat||0);
+                return (
+                  <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:`1px solid ${T.b}`}}>
+                    <div>
+                      <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13.5,color:T.t1,fontWeight:500}}>{v.nom || "Article vendu"}</p>
+                      <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:T.t3}}>{v.date}</p>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <p style={{fontFamily:"'Syne',sans-serif",fontSize:14,color:T.t1,fontWeight:700}}>{fmtCAD(v.prixVente)}</p>
+                      <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:benef>=0?T.gr:T.red}}>{benef>=0?"+":""}{fmtCAD(benef)} net</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── VUE : INVENTAIRE ───────────────────────────────────────────────────── */
+function InventaireView({inventaire, onSave}) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({nom:"", cat:"Carte Single", qty:1, coutUnit:0, prixCible:0});
+
+  const add = () => {
+    if(!f.nom) return;
+    onSave({inventaire: [{...f, id:Date.now().toString()}, ...inventaire]});
+    setOpen(false); setF({nom:"", cat:"Carte Single", qty:1, coutUnit:0, prixCible:0});
+  };
+
+  const del = (id) => onSave({inventaire: inventaire.filter(x=>x.id!==id)});
+
+  return (
+    <div>
+      <div className="page-head" style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+        <h2 style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:700,color:T.t1}}>Mon Inventaire</h2>
+        <button className="btn btn-p" onClick={()=>setOpen(true)}><Ic d={IC.add}/> Ajouter</button>
+      </div>
+
+      <div className="card" style={{overflowX:"auto"}}>
+        {inventaire.length === 0 ? <Empty icon="inv" text="Ton inventaire est vide"/> : (
+          <table>
+            <thead>
+              <tr style={{background:"rgba(255,255,255,.02)"}}>
+                <TH ch="Article" />
+                <TH ch="Catégorie" />
+                <TH ch="Qté" right />
+                <TH ch="Coût unitaire" right />
+                <TH ch="Prix cible" right />
+                <TH ch="Actions" right />
+              </tr>
+            </thead>
+            <tbody>
+              {inventaire.map(row => (
+                <tr key={row.id} className="rh">
+                  <TD ch={row.nom} bold />
+                  <TD ch={<Badge label={row.cat}/>} />
+                  <TD ch={row.qty} right />
+                  <TD ch={fmtCAD(row.coutUnit)} right color={T.t2}/>
+                  <TD ch={fmtCAD(row.prixCible)} right color={T.pu}/>
+                  <TD ch={<DelBtn onDel={()=>del(row.id)}/>} right />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <Modal open={open} title="Ajouter au stock" onClose={()=>setOpen(false)}>
+        <div className="grid-form" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div className="full"><Field label="Nom de l'article"><input value={f.nom} onChange={e=>setF({...f,nom:e.target.value})} placeholder="Dracaufeu VMAX..."/></Field></div>
+          <div className="full">
+            <Field label="Catégorie">
+              <select value={f.cat} onChange={e=>setF({...f,cat:e.target.value})}>{CATS.map(c=><option key={c}>{c}</option>)}</select>
+            </Field>
+          </div>
+          <Field label="Quantité"><input type="number" min="1" value={f.qty} onChange={e=>setF({...f,qty:Number(e.target.value)})}/></Field>
+          <Field label="Coût d'achat/u ($)"><input type="number" step="0.01" value={f.coutUnit||""} onChange={e=>setF({...f,coutUnit:Number(e.target.value)})}/></Field>
+          <div className="full"><Field label="Prix de revente cible ($)"><input type="number" step="0.01" value={f.prixCible||""} onChange={e=>setF({...f,prixCible:Number(e.target.value)})}/></Field></div>
+        </div>
+        <button className="btn btn-p" onClick={add} style={{width:"100%",marginTop:16}}>Ajouter à l'inventaire</button>
+      </Modal>
+    </div>
+  );
+}
+
+/* ─── VUE : ACHATS ───────────────────────────────────────────────────────── */
+function AchatsView({achats, onSave}) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({nom:"", date:new Date().toISOString().split("T")[0], qty:1, prixUnit:0, fraisEnvoi:0});
+
+  const add = () => {
+    if(!f.nom) return;
+    onSave({achats: [{...f, id:Date.now().toString()}, ...achats]});
+    setOpen(false); setF({nom:"", date:new Date().toISOString().split("T")[0], qty:1, prixUnit:0, fraisEnvoi:0});
+  };
+
+  const del = (id) => onSave({achats: achats.filter(x=>x.id!==id)});
+
+  return (
+    <div>
+      <div className="page-head" style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+        <h2 style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:700,color:T.t1}}>Historique des Achats</h2>
+        <button className="btn btn-p" onClick={()=>setOpen(true)}><Ic d={IC.add}/> Acheter</button>
+      </div>
+
+      <div className="card" style={{overflowX:"auto"}}>
+        {achats.length === 0 ? <Empty icon="buy" text="Aucun achat enregistré"/> : (
+          <table>
+            <thead>
+              <tr style={{background:"rgba(255,255,255,.02)"}}>
+                <TH ch="Date" />
+                <TH ch="Article" />
+                <TH ch="Qté" right />
+                <TH ch="Prix unitaire" right />
+                <TH ch="Frais envoi" right />
+                <TH ch="Total payé" right />
+                <TH ch="" right />
+              </tr>
+            </thead>
+            <tbody>
+              {achats.map(row => (
+                <tr key={row.id} className="rh">
+                  <TD ch={row.date} />
+                  <TD ch={row.nom} bold />
+                  <TD ch={row.qty} right />
+                  <TD ch={fmtCAD(row.prixUnit)} right />
+                  <TD ch={fmtCAD(row.fraisEnvoi)} right color={T.red}/>
+                  <TD ch={fmtCAD((row.prixUnit*row.qty) + (row.fraisEnvoi||0))} right bold color={T.cy}/>
+                  <TD ch={<DelBtn onDel={()=>del(row.id)}/>} right />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <Modal open={open} title="Nouvel Achat" onClose={()=>setOpen(false)}>
+        <div className="grid-form" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div className="full"><Field label="Nom / Description"><input value={f.nom} onChange={e=>setF({...f,nom:e.target.value})} placeholder="Lot de cartes..."/></Field></div>
+          <div className="full"><Field label="Date"><input type="date" value={f.date} onChange={e=>setF({...f,date:e.target.value})}/></Field></div>
+          <Field label="Quantité"><input type="number" min="1" value={f.qty} onChange={e=>setF({...f,qty:Number(e.target.value)})}/></Field>
+          <Field label="Prix unitaire ($)"><input type="number" step="0.01" value={f.prixUnit||""} onChange={e=>setF({...f,prixUnit:Number(e.target.value)})}/></Field>
+          <div className="full"><Field label="Frais d'expédition ($)"><input type="number" step="0.01" value={f.fraisEnvoi||""} onChange={e=>setF({...f,fraisEnvoi:Number(e.target.value)})}/></Field></div>
+        </div>
+        <button className="btn btn-p" onClick={add} style={{width:"100%",marginTop:16}}>Enregistrer l'achat</button>
+      </Modal>
+    </div>
+  );
+}
+
+/* ─── VUE : VENTES ───────────────────────────────────────────────────────── */
+function VentesView({ventes, onSave}) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({nom:"", date:new Date().toISOString().split("T")[0], plat:PLATS[0], prixVente:0, fraisPlat:0, fraisEnvoi:0, coutAchat:0});
+
+  const add = () => {
+    if(!f.nom) return;
+    onSave({ventes: [{...f, id:Date.now().toString()}, ...ventes]});
+    setOpen(false); setF({nom:"", date:new Date().toISOString().split("T")[0], plat:PLATS[0], prixVente:0, fraisPlat:0, fraisEnvoi:0, coutAchat:0});
+  };
+
+  const del = (id) => onSave({ventes: ventes.filter(x=>x.id!==id)});
+
+  return (
+    <div>
+      <div className="page-head" style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+        <h2 style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:700,color:T.t1}}>Historique des Ventes</h2>
+        <button className="btn btn-p" onClick={()=>setOpen(true)}><Ic d={IC.add}/> Vendre</button>
+      </div>
+
+      <div className="card" style={{overflowX:"auto"}}>
+        {ventes.length === 0 ? <Empty icon="sell" text="Aucune vente enregistrée"/> : (
+          <table>
+            <thead>
+              <tr style={{background:"rgba(255,255,255,.02)"}}>
+                <TH ch="Date" />
+                <TH ch="Article" />
+                <TH ch="Plateforme" />
+                <TH ch="Prix Vente" right />
+                <TH ch="Coût Initial" right />
+                <TH ch="Bénéfice Net" right />
+                <TH ch="" right />
+              </tr>
+            </thead>
+            <tbody>
+              {ventes.map(row => {
+                const benef = row.prixVente - (row.fraisPlat||0) - (row.fraisEnvoi||0) - (row.coutAchat||0);
+                return (
+                  <tr key={row.id} className="rh">
+                    <TD ch={row.date} />
+                    <TD ch={row.nom} bold />
+                    <TD ch={row.plat} color={T.t3} />
+                    <TD ch={fmtCAD(row.prixVente)} right color={T.t1} bold />
+                    <TD ch={fmtCAD(row.coutAchat)} right color={T.t3} />
+                    <TD ch={<PBadge val={benef} />} right />
+                    <TD ch={<DelBtn onDel={()=>del(row.id)}/>} right />
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <Modal open={open} title="Nouvelle Vente" onClose={()=>setOpen(false)}>
+        <div className="grid-form" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div className="full"><Field label="Nom de l'article vendu"><input value={f.nom} onChange={e=>setF({...f,nom:e.target.value})} placeholder="Ex: Mewtwo VSTAR"/></Field></div>
+          <Field label="Date de vente"><input type="date" value={f.date} onChange={e=>setF({...f,date:e.target.value})}/></Field>
+          <Field label="Plateforme">
+            <select value={f.plat} onChange={e=>setF({...f,plat:e.target.value})}>{PLATS.map(p=><option key={p}>{p}</option>)}</select>
+          </Field>
+          <Field label="Prix vendu ($)"><input type="number" step="0.01" value={f.prixVente||""} onChange={e=>setF({...f,prixVente:Number(e.target.value)})}/></Field>
+          <Field label="Coût d'achat initial ($)"><input type="number" step="0.01" value={f.coutAchat||""} onChange={e=>setF({...f,coutAchat:Number(e.target.value)})}/></Field>
+          <Field label="Frais de plateforme ($)"><input type="number" step="0.01" value={f.fraisPlat||""} onChange={e=>setF({...f,fraisPlat:Number(e.target.value)})}/></Field>
+          <Field label="Frais d'expédition ($)"><input type="number" step="0.01" value={f.fraisEnvoi||""} onChange={e=>setF({...f,fraisEnvoi:Number(e.target.value)})}/></Field>
+        </div>
+        <button className="btn btn-p" onClick={add} style={{width:"100%",marginTop:16}}>Enregistrer la vente</button>
+      </Modal>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPOSANT PRINCIPAL (APP)
+═══════════════════════════════════════════════════════════════════════════ */
+
+export default function App() {
+  // Polyfill de sécurité si window.storage n'existe pas dans ton environnement
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !window.storage) {
+      window.storage = {
+        get: async (k) => ({ value: localStorage.getItem(k) }),
+        set: async (k, v) => localStorage.setItem(k, v),
+        delete: async (k) => localStorage.removeItem(k)
+      };
+    }
+  }, []);
+
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [view, setView] = useState("login"); // login, signup, verify
+  const [tab, setTab] = useState("dash");
+  const [data, setData] = useState({ achats: [], ventes: [], inventaire: [] });
+  const [tmpUser, setTmpUser] = useState(null); // Pour le flux de vérification
+
+  const loadData = useCallback(async (u) => {
+    if(!u) return;
+    const res = await DB.load(u.username);
+    setData({ achats: res.achats||[], ventes: res.ventes||[], inventaire: res.inventaire||[] });
+  }, []);
+
+  useEffect(() => {
+    DB.getSession().then(u => {
+      if(u) { setUser(u); loadData(u); }
+      setLoading(false);
+    });
+  }, [loadData]);
+
+  const onLogout = async () => {
+    await DB.clearSession();
+    setUser(null);
+    setView("login");
+  };
+
+  const handleSave = async (partialData) => {
+    const newData = { ...data, ...partialData };
+    setData(newData);
+    await DB.save(user.username, newData);
+  };
+
+  // -- Rendu Auth --
+  if (loading) return <div style={{height:"100vh", background:T.bg, display:"flex", alignItems:"center", justifyContent:"center"}}><Spinner size={32}/></div>;
+  
+  if (!user) {
+    if (view === "login")  return <LoginScreen onLogin={(u)=>{setUser(u); loadData(u);}} onGoSignup={()=>setView("signup")}/>;
+    if (view === "signup") return <SignupScreen onSignup={(u)=>{setTmpUser(u); setView("verify");}} onGoLogin={()=>setView("login")}/>;
+    if (view === "verify") return <VerifyScreen {...tmpUser} onVerify={()=>{setView("login");}} onBack={()=>setView("signup")}/>;
+  }
+
+  // -- Rendu Application --
+  const TABS = [
+    { id: "dash", icon: "dash", label: "Dashboard" },
+    { id: "inv",  icon: "inv",  label: "Inventaire" },
+    { id: "achats", icon: "buy", label: "Achats" },
+    { id: "ventes", icon: "sell", label: "Ventes" }
+  ];
+
+  return (
+    <div style={{minHeight:"100vh", background:T.bg}}>
+      <GlobalStyle />
+      
+      {/* Top Navbar */}
+      <header style={{background:"rgba(11,11,25,.8)", backdropFilter:"blur(20px)", borderBottom:`1px solid ${T.bB}`, position:"sticky", top:0, zIndex:100}}>
+        <div style={{maxWidth:1100, margin:"0 auto", padding:"12px 20px", display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+          <div style={{display:"flex", alignItems:"center", gap:10}}>
+            <div style={{width:32, height:32, borderRadius:8, background:"linear-gradient(135deg,#FF2D55,#FF6B35)", display:"flex", alignItems:"center", justifyContent:"center"}}>
+              <Ic d={IC.logo} size={18} color="#fff" sw={2}/>
+            </div>
+            <span style={{fontFamily:"'Syne',sans-serif", fontSize:18, fontWeight:700, color:T.t1}}>PokeTracker</span>
+          </div>
+
+          {/* Nav Desktop */}
+          <nav className="hide-mobile" style={{display:"flex", gap:8}}>
+            {TABS.map(t => (
+              <button key={t.id} className={`nav-tab ${tab===t.id?"active":""}`} onClick={()=>setTab(t.id)}>
+                <Ic d={IC[t.icon]} size={15}/> {t.label}
+              </button>
+            ))}
+          </nav>
+
+          <button className="btn-icon" onClick={onLogout} style={{color:T.t3}} title="Déconnexion"><Ic d={IC.logout} size={18}/></button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="main-pad" style={{maxWidth:1100, margin:"0 auto", padding:"24px 20px"}}>
+        {tab === "dash" && <Dashboard achats={data.achats} ventes={data.ventes} inventaire={data.inventaire} user={user} />}
+        {tab === "inv"  && <InventaireView inventaire={data.inventaire} onSave={handleSave} />}
+        {tab === "achats" && <AchatsView achats={data.achats} onSave={handleSave} />}
+        {tab === "ventes" && <VentesView ventes={data.ventes} onSave={handleSave} />}
+      </main>
+
+      {/* Bottom Nav Mobile */}
+      <nav className="bot-nav" style={{position:"fixed", bottom:0, left:0, right:0, background:"rgba(11,11,25,.9)", backdropFilter:"blur(20px)", borderTop:`1px solid ${T.b}`, display:"flex", paddingBottom:"env(safe-area-inset-bottom)", zIndex:100}}>
+        {TABS.map(t => (
+          <button key={t.id} className={`bot-tab ${tab===t.id?"active":""}`} onClick={()=>setTab(t.id)}>
+            <Ic d={IC[t.icon]} size={20}/>
+            {t.label}
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}

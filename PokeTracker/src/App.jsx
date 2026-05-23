@@ -132,12 +132,12 @@ const IC = {
 const hashPw  = pw => btoa(encodeURIComponent(pw + "_pt26salt"));
 const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
 const DB = {
-  async getSession()     { try{ const r=await window.storage.get("pt2:sess");    return r?JSON.parse(r.value):null; }catch{return null;} },
+  async getSession()     { try{ const r=await window.storage.get("pt2:sess");    return (r&&r.value)?JSON.parse(r.value):null; }catch{return null;} },
   async setSession(u)    { try{ await window.storage.set("pt2:sess",JSON.stringify(u)); }catch{} },
   async clearSession()   { try{ await window.storage.delete("pt2:sess"); }catch{} },
-  async getAccounts()    { try{ const r=await window.storage.get("pt2:accs",true); return r?JSON.parse(r.value):[]; }catch{return[];} },
+  async getAccounts()    { try{ const r=await window.storage.get("pt2:accs",true); return (r&&r.value)?JSON.parse(r.value):[]; }catch{return[];} },
   async saveAccounts(a)  { try{ await window.storage.set("pt2:accs",JSON.stringify(a),true); }catch{} },
-  async load(uid)        { try{ const r=await window.storage.get("pt2u_"+uid,true); return r?JSON.parse(r.value):{achats:[],ventes:[],inventaire:[]}; }catch{return{achats:[],ventes:[],inventaire:[]};} },
+  async load(uid)        { try{ const r=await window.storage.get("pt2u_"+uid,true); return (r&&r.value)?JSON.parse(r.value):{achats:[],ventes:[],inventaire:[]}; }catch{return{achats:[],ventes:[],inventaire:[]};} },
   async save(uid,data)   { try{ await window.storage.set("pt2u_"+uid,JSON.stringify(data),true); }catch{} },
 };
 
@@ -265,6 +265,7 @@ const PLATS = ["eBay","TCGPlayer","CardMarket","Facebook Marketplace","Kijiji","
 const AuthWrap = ({children}) => (
   <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",
     background:T.bg,padding:16,position:"relative",overflow:"hidden"}}>
+    <GlobalStyle/>
     <div style={{position:"absolute",top:"-25%",left:"50%",transform:"translateX(-50%)",width:500,height:360,borderRadius:"50%",background:"radial-gradient(circle,rgba(255,45,85,.13),transparent 70%)",pointerEvents:"none"}}/>
     <div style={{position:"absolute",bottom:"-15%",right:"-5%",width:320,height:320,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,217,255,.07),transparent 70%)",pointerEvents:"none"}}/>
     <div className="fade" style={{maxWidth:420,width:"100%",background:"rgba(11,11,25,.92)",
@@ -356,12 +357,17 @@ function SignupScreen({onSignup,onGoLogin}) {
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setErr("Email invalide");
     if(!/^[a-zA-Z0-9_]{3,20}$/.test(username))    return setErr("Pseudo : 3-20 caractères, lettres/chiffres/_ uniquement");
     setBusy(true); setErr("");
-    const accs=await DB.getAccounts();
-    if(accs.find(a=>a.username===username)) { setErr("Ce pseudo est déjà pris"); return setBusy(false); }
-    if(accs.find(a=>a.email===email))       { setErr("Cet email est déjà utilisé"); return setBusy(false); }
-    const code=genCode();
-    await DB.saveAccounts([...accs,{username,email,pw:hashPw(pw),code,verified:false,createdAt:new Date().toISOString()}]);
-    onSignup({username,email,code});
+    try {
+      const accs=await DB.getAccounts();
+      if(accs.find(a=>a.username===username)) { setErr("Ce pseudo est déjà pris"); return setBusy(false); }
+      if(accs.find(a=>a.email===email))       { setErr("Cet email est déjà utilisé"); return setBusy(false); }
+      const code=genCode();
+      await DB.saveAccounts([...accs,{username,email,pw:hashPw(pw),code,verified:false,createdAt:new Date().toISOString()}]);
+      onSignup({username,email,code});
+    } catch {
+      setErr("Une erreur est survenue, réessaie");
+      setBusy(false);
+    }
   };
 
   return (
@@ -808,7 +814,12 @@ export default function App() {
   if (!user) {
     if (view === "login")  return <LoginScreen onLogin={(u)=>{setUser(u); loadData(u);}} onGoSignup={()=>setView("signup")}/>;
     if (view === "signup") return <SignupScreen onSignup={(u)=>{setTmpUser(u); setView("verify");}} onGoLogin={()=>setView("login")}/>;
-    if (view === "verify") return <VerifyScreen {...tmpUser} onVerify={()=>{setView("login");}} onBack={()=>setView("signup")}/>;
+    if (view === "verify") return <VerifyScreen {...tmpUser} onVerify={async ()=>{
+      const u={username:tmpUser.username,email:tmpUser.email};
+      await DB.setSession(u);
+      setUser(u);
+      loadData(u);
+    }} onBack={()=>setView("signup")}/>;
   }
 
   // -- Rendu Application --
